@@ -108,6 +108,16 @@
 
   const apiUrl = `${APP_URL}/public/recommendations?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&limit=${limit}&sid=${sid}`;
 
+  // XSS: escape user-controlled strings before inserting into innerHTML
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   fetch(apiUrl)
     .then(r => r.json())
     .then(data => {
@@ -118,30 +128,30 @@
         return;
       }
 
-      const primaryColor = data.config?.primaryColor || '#000000';
+      const primaryColor = /^#[0-9a-fA-F]{3,6}$/.test(data.config?.primaryColor) ? data.config.primaryColor : '#000000';
 
       // Build HTML
-      let html = `<h2 class="smartrec-heading">${heading || data.config?.title || 'You might also like'}</h2>`;
+      let html = `<h2 class="smartrec-heading">${esc(heading || data.config?.title || 'You might also like')}</h2>`;
       html += `<div class="smartrec-grid">`;
 
       for (const product of data.recommendations) {
-        const productUrl = `/products/${product.handle}`;
+        const productUrl = `/products/${esc(product.handle)}`;
         const price = new Intl.NumberFormat(undefined, { style: 'currency', currency: '{{ cart.currency.iso_code }}' }).format(product.price);
 
         html += `
           <a class="smartrec-card" href="${productUrl}"
-             data-product-id="${product.shopifyId}"
-             onclick="smartrecTrackClick('${productId}', '${product.shopifyId}', '${sid}', '${shop}', '${APP_URL}')">
+             data-product-id="${esc(product.shopifyId)}"
+             onclick="smartrecTrackClick('${esc(productId)}', '${esc(product.shopifyId)}', '${esc(sid)}', '${esc(shop)}', '${esc(APP_URL)}')">
             ${product.imageUrl
-              ? `<img class="smartrec-card__image" src="${product.imageUrl}" alt="${product.title}" loading="lazy" />`
+              ? `<img class="smartrec-card__image" src="${esc(product.imageUrl)}" alt="${esc(product.title)}" loading="lazy" />`
               : `<div class="smartrec-card__image"></div>`}
-            <p class="smartrec-card__title">${product.title}</p>
+            <p class="smartrec-card__title">${esc(product.title)}</p>
             ${showPrices && data.config?.showPrices !== false
-              ? `<p class="smartrec-card__price">${price}</p>`
+              ? `<p class="smartrec-card__price">${esc(price)}</p>`
               : ''}
             ${showAtc && data.config?.showAddToCart !== false
               ? `<button class="smartrec-atc" style="background:${primaryColor}"
-                   onclick="smartrecAddToCart(event, '${product.shopifyId}', '${productId}', '${sid}', '${shop}', '${APP_URL}')">
+                   onclick="smartrecAddToCart(event, '${esc(product.handle)}', '${esc(product.shopifyId)}', '${esc(productId)}', '${esc(sid)}', '${esc(shop)}', '${esc(APP_URL)}')">
                    Add to cart
                  </button>`
               : ''}
@@ -160,28 +170,43 @@
 
   // ── Event tracking helpers ─────────────────────────────────────────────────
   window.smartrecTrackClick = function (sourceId, targetId, sid, shop, appUrl) {
-    navigator.sendBeacon(`${appUrl}/public/event`, JSON.stringify({
-      shop, eventType: 'CLICK', sourceProductId: sourceId,
-      targetProductId: targetId, sessionId: sid,
-    }));
+    // sendBeacon with a plain string sends as text/plain; use Blob to force application/json
+    navigator.sendBeacon(
+      `${appUrl}/public/event`,
+      new Blob([JSON.stringify({
+        shop, eventType: 'CLICK', sourceProductId: sourceId,
+        targetProductId: targetId, sessionId: sid,
+      })], { type: 'application/json' })
+    );
   };
 
-  window.smartrecAddToCart = function (e, shopifyGid, sourceId, sid, shop, appUrl) {
+  window.smartrecAddToCart = function (e, productHandle, shopifyGid, sourceId, sid, shop, appUrl) {
     e.preventDefault();
     e.stopPropagation();
-    const variantId = shopifyGid.replace('gid://shopify/Product/', '');
-    fetch('/cart/add.js', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: variantId, quantity: 1 }),
-    }).then(() => {
-      navigator.sendBeacon(`${appUrl}/public/event`, JSON.stringify({
-        shop, eventType: 'ADD_TO_CART', sourceProductId: sourceId,
-        targetProductId: shopifyGid, sessionId: sid,
-      }));
-      // Trigger cart drawer if the theme has one
-      document.dispatchEvent(new CustomEvent('cart:refresh'));
-    });
+    // Fetch the product JSON to get the real default variant ID
+    // (product GID ≠ variant ID; /cart/add.js requires a variant ID)
+    fetch(`/products/${productHandle}.js`)
+      .then(r => r.json())
+      .then(p => {
+        const variantId = p.variants[0].id;
+        return fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: variantId, quantity: 1 }),
+        });
+      })
+      .then(() => {
+        navigator.sendBeacon(
+          `${appUrl}/public/event`,
+          new Blob([JSON.stringify({
+            shop, eventType: 'ADD_TO_CART', sourceProductId: sourceId,
+            targetProductId: shopifyGid, sessionId: sid,
+          })], { type: 'application/json' })
+        );
+        // Trigger cart drawer if the theme has one
+        document.dispatchEvent(new CustomEvent('cart:refresh'));
+      })
+      .catch(() => {});
   };
 })();
 </script>

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { shopify } from '../services/shopify';
+import { prisma } from '../utils/db';
 import { syncShopData } from '../services/syncService';
 import { logger } from '../utils/logger';
 
@@ -47,4 +48,36 @@ authRouter.get('/callback', async (req, res) => {
     logger.error('OAuth callback error', { err });
     return res.status(500).send('Authentication failed. Please try again.');
   }
+});
+
+/**
+ * Step 3 (billing): Shopify redirects here after merchant approves or declines a subscription.
+ * URL: /auth/billing/callback?shop=...&plan=STARTER|GROWTH&charge_id=...
+ */
+authRouter.get('/billing/callback', async (req, res) => {
+  const { shop, plan, charge_id } = req.query as { shop?: string; plan?: string; charge_id?: string };
+
+  if (!shop || !plan || !charge_id) {
+    return res.status(400).send('Missing required billing callback parameters.');
+  }
+
+  const validPlans = ['STARTER', 'GROWTH'] as const;
+  if (!validPlans.includes(plan as any)) {
+    return res.status(400).send('Invalid plan.');
+  }
+
+  try {
+    await prisma.shop.updateMany({
+      where: { shopDomain: shop },
+      data: { plan: plan as 'STARTER' | 'GROWTH' },
+    });
+    logger.info(`Billing activated: shop=${shop} plan=${plan} charge_id=${charge_id}`);
+  } catch (err) {
+    logger.error('Billing callback DB update failed', { shop, plan, err });
+  }
+
+  // Redirect back into the embedded app
+  return res.redirect(
+    `https://${shop}/admin/apps/${process.env.SHOPIFY_API_KEY}`
+  );
 });

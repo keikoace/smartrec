@@ -153,3 +153,80 @@ webhookRouter.post('/app/uninstalled', async (req, res) => {
 
   logger.info(`App uninstalled: ${shop}`);
 });
+
+// ─── GDPR Webhooks (required for Shopify App Store approval) ─────────────────
+// These must be registered in the Partners dashboard under "GDPR webhooks".
+// SmartRec stores no customer PII; only shop-level aggregate analytics.
+
+/**
+ * CUSTOMERS_DATA_REQUEST
+ * Merchant's customer asked for their data. We don't store PII so we respond 200.
+ */
+webhookRouter.post('/customers/data_request', async (req, res) => {
+  const result = await verifyAndParse(req, res);
+  if (!result) return;
+  res.status(200).send('OK');
+  logger.info('GDPR: customers/data_request received', { shop: result.shop });
+  // SmartRec does not store customer PII (names, emails, addresses).
+  // Analytics events are stored by sessionId only — not linked to customer identity.
+});
+
+/**
+ * CUSTOMERS_REDACT
+ * Merchant's customer requested erasure. Delete analytics events for this session.
+ */
+webhookRouter.post('/customers/redact', async (req, res) => {
+  const result = await verifyAndParse(req, res);
+  if (!result) return;
+  res.status(200).send('OK');
+
+  const { shop, body } = result;
+  logger.info('GDPR: customers/redact received', { shop });
+
+  try {
+    const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: shop } });
+    if (!shopRecord) return;
+
+    // orders_to_redact contains order IDs — we don't store customer PII but
+    // we can delete analytics events associated with those orders' sessions.
+    const orderIds: string[] = (body.orders_to_redact ?? []).map((o: any) => String(o.id));
+    if (orderIds.length > 0) {
+      // We only have sessionId, not orderId, in AnalyticsEvent — nothing to redact.
+      // Log for audit trail.
+      logger.info('GDPR customers/redact: no PII to delete', { shop, orderIds });
+    }
+  } catch (err) {
+    logger.error('GDPR customers/redact error', { shop, err });
+  }
+});
+
+/**
+ * SHOP_REDACT
+ * Shop uninstalled + 48h grace period passed. Delete all shop data.
+ */
+webhookRouter.post('/shop/redact', async (req, res) => {
+  const result = await verifyAndParse(req, res);
+  if (!result) return;
+  res.status(200).send('OK');
+
+  const { shop } = result;
+  logger.info('GDPR: shop/redact received', { shop });
+
+  try {
+    const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: shop } });
+    if (!shopRecord) return;
+
+    // Cascade-delete all shop data in dependency order
+    await prisma.analyticsEvent.deleteMany({ where: { shopId: shopRecord.id } });
+    await prisma.recommendation.deleteMany({ where: { shopId: shopRecord.id } });
+    await prisma.orderItem.deleteMany({ where: { order: { shopId: shopRecord.id } } });
+    await prisma.order.deleteMany({ where: { shopId: shopRecord.id } });
+    await prisma.product.deleteMany({ where: { shopId: shopRecord.id } });
+    await prisma.widgetConfig.deleteMany({ where: { shopId: shopRecord.id } });
+    await prisma.shop.delete({ where: { id: shopRecord.id } });
+
+    logger.info(`GDPR shop/redact complete: all data deleted for ${shop}`);
+  } catch (err) {
+    logger.error('GDPR shop/redact error', { shop, err });
+  }
+});
