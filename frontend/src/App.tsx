@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Frame, Navigation } from '@shopify/polaris';
-import { HomeMinor, SettingsMinor, AnalyticsMinor, BillingStatementDollarMinor } from '@shopify/polaris-icons';
+import { HomeIcon, SettingsIcon, ChartBarIcon, CreditCardIcon } from '@shopify/polaris-icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
@@ -15,10 +15,10 @@ export default function App() {
     <Navigation location={location.pathname}>
       <Navigation.Section
         items={[
-          { label: 'Dashboard',  icon: HomeMinor,                    url: '/',          onClick: () => navigate('/') },
-          { label: 'Analytics',  icon: AnalyticsMinor,               url: '/analytics', onClick: () => navigate('/analytics') },
-          { label: 'Settings',   icon: SettingsMinor,                url: '/settings',  onClick: () => navigate('/settings') },
-          { label: 'Billing',    icon: BillingStatementDollarMinor,  url: '/billing',   onClick: () => navigate('/billing') },
+          { label: 'Dashboard',  icon: HomeIcon,       url: '/',          onClick: () => navigate('/') },
+          { label: 'Analytics',  icon: ChartBarIcon,   url: '/analytics', onClick: () => navigate('/analytics') },
+          { label: 'Settings',   icon: SettingsIcon,   url: '/settings',  onClick: () => navigate('/settings') },
+          { label: 'Billing',    icon: CreditCardIcon, url: '/billing',   onClick: () => navigate('/billing') },
         ]}
       />
     </Navigation>
