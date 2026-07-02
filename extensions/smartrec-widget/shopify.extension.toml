@@ -8,6 +8,7 @@ api_version = "2025-04"
 type = "theme"
 name = "SmartRec Widget"
 handle = "smartrec-widget"
+uid = "84d04625-7301-d217-d07a-5938b86e337d1ef7f844"
 
   [extensions.settings]
 
