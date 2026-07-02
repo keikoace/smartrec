@@ -1,0 +1,16 @@
+name = "SmartRec"
+client_id = "25be6df17750c11e73a3b54b977a7204"
+application_url = "https://smartrec-backend-production.up.railway.app"
+embedded = true
+
+[access_scopes]
+scopes = "read_products,read_orders,read_customers,write_script_tags"
+
+[auth]
+redirect_urls = [ "https://smartrec-backend-production.up.railway.app/auth/callback" ]
+
+[webhooks]
+api_version = "2025-04"
+
+[pos]
+embedded = false

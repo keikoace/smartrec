@@ -43,6 +43,21 @@ app.use(cookieSession({
 // ─── Health check (used by Railway) ──────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
+// ─── Root: embedded app entry point ──────────────────────────────────────────
+// Shopify iframes this URL when a merchant opens the app in admin.
+// If there's a valid session we show a redirect stub; otherwise re-auth.
+app.get('/', (req, res) => {
+  const shop = req.query.shop as string | undefined;
+  const host = req.query.host as string | undefined;
+  if (!shop) {
+    return res.status(400).send('Missing shop parameter.');
+  }
+  // Redirect into the Shopify Admin embedded view
+  const apiKey = process.env.SHOPIFY_API_KEY ?? '';
+  const hostParam = host ? `&host=${host}` : '';
+  res.redirect(`https://${shop}/admin/apps/${apiKey}?shop=${shop}${hostParam}`);
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/auth', authRouter);
 app.use('/webhooks', webhookRouter);
