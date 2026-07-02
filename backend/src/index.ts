@@ -20,6 +20,16 @@ const PORT = process.env.PORT || 3000;
 // ─── Trust proxy (needed behind Railway / Render load balancer) ───────────────
 app.set('trust proxy', 1);
 
+// ─── Shopify embedded app: allow framing by Shopify admin ────────────────────
+// Without this header browsers block the iframe Shopify renders our app in.
+app.use((_req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "frame-ancestors https://*.shopify.com https://admin.shopify.com;"
+  );
+  next();
+});
+
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use(cors({
   origin: process.env.APP_URL,
