@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Page, Layout, Card, FormLayout, TextField, Checkbox,
-  Button, Toast, Frame, BlockStack, Text, ColorPicker, hsbToHex, hexToRgb,
+  Button, Toast, Frame, BlockStack, Text,
 } from '@shopify/polaris';
 import { useApi } from '../hooks/useApi';
 
