@@ -1,11 +1,11 @@
-import { Session, SessionStorage } from '@shopify/shopify-api';
+import { Session } from '@shopify/shopify-api';
 import { prisma } from '../utils/db';
 
 /**
  * Stores Shopify OAuth sessions in PostgreSQL via Prisma.
  * The @shopify/shopify-api library calls these methods automatically.
  */
-export class PrismaSessionStorage implements SessionStorage {
+export class PrismaSessionStorage {
   async storeSession(session: Session): Promise<boolean> {
     try {
       await prisma.shop.upsert({

@@ -34,7 +34,7 @@ authRouter.get('/callback', async (req, res) => {
     logger.info(`OAuth complete for shop: ${session.shop}`);
 
     // Kick off background sync — products + historical orders
-    syncShopData(session.shop, session.accessToken).catch((err) =>
+    syncShopData(session.shop, session.accessToken ?? '').catch((err) =>
       logger.error('Initial sync failed', { shop: session.shop, err })
     );
 

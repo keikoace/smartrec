@@ -10,7 +10,7 @@ export const webhookRouter = Router();
 async function verifyAndParse(req: Request, res: Response): Promise<{ shop: string; body: any } | null> {
   const hmac = req.headers['x-shopify-hmac-sha256'] as string;
   const shop = req.headers['x-shopify-shop-domain'] as string;
-  const rawBody = req.body as Buffer;
+  const rawBody: string = (req.body as Buffer).toString();
 
   const valid = await shopify.webhooks.validate({
     rawBody,
@@ -23,7 +23,7 @@ async function verifyAndParse(req: Request, res: Response): Promise<{ shop: stri
     return null;
   }
 
-  return { shop, body: JSON.parse(rawBody.toString()) };
+  return { shop, body: JSON.parse(rawBody) };
 }
 
 /**

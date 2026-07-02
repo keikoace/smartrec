@@ -120,12 +120,12 @@ async function computeRecommendationsForShop(shopId: string): Promise<void> {
       where: { id: { in: top.map((t) => t.productId) } },
       select: { id: true, shopifyId: true },
     });
-    const idToGid = new Map(products.map((p) => [p.id, p.shopifyId]));
+    const idToGid = new Map<string, string>(products.map((p) => [p.id, p.shopifyId]));
 
     recommendations.push({
       shopId,
       sourceProductId: productId,
-      rankedProducts: top.map((t) => idToGid.get(t.productId)!).filter(Boolean),
+      rankedProducts: top.map((t) => idToGid.get(t.productId)!).filter((v): v is string => Boolean(v)),
       score: top.map((t) => t.score),
     });
   }
