@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartRec — Privacy Policy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #1a1a1a; background: #fff; }
+    header { background: #0a0a0a; color: #fff; padding: 1.5rem 2rem; display: flex; align-items: center; gap: 0.75rem; }
+    header h1 { font-size: 1.25rem; font-weight: 700; }
+    .container { max-width: 760px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .meta { font-size: 0.875rem; color: #666; margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e5e5; }
+    h2 { font-size: 1.125rem; font-weight: 700; margin: 2rem 0 0.6rem; color: #0a0a0a; }
+    p { margin-bottom: 1rem; color: #333; }
+    ul { margin: 0.5rem 0 1rem 1.5rem; color: #333; }
+    ul li { margin-bottom: 0.4rem; }
+    a { color: #0070f3; text-decoration: none; }
+    .highlight { background: #f4f4f5; border-left: 3px solid #0070f3; padding: 0.9rem 1.2rem; border-radius: 0 6px 6px 0; margin: 1.25rem 0; color: #333; }
+    footer { text-align: center; font-size: 0.8125rem; color: #999; padding: 2rem; border-top: 1px solid #e5e5e5; }
+  </style>
+</head>
+<body>
+<header><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="28" height="28" rx="7" fill="#0070f3"/><circle cx="10" cy="18" r="3" fill="white"/><circle cx="18" cy="10" r="3" fill="white"/><circle cx="18" cy="18" r="3" fill="white" opacity="0.4"/><line x1="10" y1="18" x2="18" y2="10" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="18" y1="10" x2="18" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="18" x2="18" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg><h1>SmartRec</h1></header>
+<div class="container">
+  <div class="meta"><strong>Privacy Policy</strong><br/>Effective date: July 2, 2026 &nbsp;· Last updated: July 2, 2026</div>
+  <div class="highlight"><strong>The short version:</strong> SmartRec does not store or process customer personal information (names, emails, addresses). We only process product catalog data and aggregated order data needed to generate product recommendations for your store.</div>
+  <h2>1. Who We Are</h2>
+  <p>SmartRec is a Shopify app providing AI-powered product recommendation widgets. App URL: <a href="https://smartrec-backend-production.up.railway.app">https://smartrec-backend-production.up.railway.app</a>. Privacy questions: <a href="mailto:support@smartrec.app">support@smartrec.app</a></p>
+  <h2>2. Data We Collect</h2>
+  <ul><li><strong>Shop information</strong> — store domain, access token (encrypted at rest)</li><li><strong>Product catalog</strong> — product IDs, titles, handles, images, prices</li><li><strong>Order data</strong> — order IDs and product IDs per order (no customer PII)</li><li><strong>Storefront analytics</strong> — anonymous session IDs, impressions, clicks, add-to-cart events</li><li><strong>Widget configuration</strong> — heading, color, display preferences</li></ul>
+  <h2>3. Data We Do NOT Collect</h2>
+  <div class="highlight">SmartRec does <strong>not</strong> collect customer names, emails, addresses, payment data, credentials, IP addresses, or cross-site tracking data. Session IDs are random strings with no link to customer identity.</div>
+  <h2>4. How We Use Data</h2>
+  <p>Data is used solely to train recommendation models, display the widget, provide analytics, and operate the service. We do not sell, rent, or share data with any third party for marketing purposes.</p>
+  <h2>5. Data Sharing</h2>
+  <p>We share data only with <strong>Railway</strong> (cloud hosting) and <strong>Shopify</strong> (as required by their API). All service providers are prohibited from using your data for other purposes.</p>
+  <h2>6. Data Retention</h2>
+  <p>Data is retained while the app is installed. All data is permanently deleted within 48 hours of receiving the shop/redact GDPR webhook from Shopify (received after uninstall).</p>
+  <h2>7. GDPR Compliance</h2>
+  <p>We handle all three mandatory Shopify GDPR webhooks: <strong>customers/data_request</strong>, <strong>customers/redact</strong>, and <strong>shop/redact</strong>. No customer PII is stored. Legal basis for processing is contract performance (Shopify Partner Agreement).</p>
+  <h2>8. Security</h2>
+  <ul><li>All data transmitted over TLS (HTTPS)</li><li>Shopify access tokens stored encrypted in database</li><li>All webhook payloads verified using HMAC-SHA256</li><li>Infrastructure runs in isolated environment on Railway</li></ul>
+  <h2>9. Merchant Rights</h2>
+  <p>You may request access, correction, or deletion of your data at any time by emailing <a href="mailto:support@smartrec.app">support@smartrec.app</a>. Uninstalling the app automatically triggers data deletion.</p>
+  <h2>10. Changes to This Policy</h2>
+  <p>We may update this policy from time to time. Material changes will be reflected in the "Last updated" date above. Continued use constitutes acceptance.</p>
+  <h2>11. Contact</h2>
+  <p><strong>Email:</strong> <a href="mailto:support@smartrec.app">support@smartrec.app</a><br/><strong>App:</strong> <a href="https://smartrec-backend-production.up.railway.app">https://smartrec-backend-production.up.railway.app</a></p>
+</div>
+<footer>&copy; 2026 SmartRec. All rights reserved.</footer>
+</body>
+</html>
