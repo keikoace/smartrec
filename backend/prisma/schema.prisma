@@ -1,0 +1,147 @@
+// SmartRec — Prisma Schema
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Installed Shopify Stores ────────────────────────────────────────────────
+
+model Shop {
+  id              String   @id @default(cuid())
+  shopDomain      String   @unique  // e.g. "mystore.myshopify.com"
+  accessToken     String
+  scope           String
+  installedAt     DateTime @default(now())
+  uninstalledAt   DateTime?
+  plan            Plan     @default(FREE)
+  billingId       String?  // Shopify recurring charge ID
+
+  products        Product[]
+  orders          Order[]
+  recommendations Recommendation[]
+  widgetConfig    WidgetConfig?
+  analytics       AnalyticsEvent[]
+
+  @@index([shopDomain])
+}
+
+// ─── Products (synced from Shopify) ──────────────────────────────────────────
+
+model Product {
+  id              String   @id @default(cuid())
+  shopId          String
+  shopifyId       String   // Shopify product GID
+  title           String
+  handle          String
+  imageUrl        String?
+  price           Float
+  updatedAt       DateTime @updatedAt
+
+  shop            Shop     @relation(fields: [shopId], references: [id])
+
+  // Which orders this product appeared in (for co-occurrence matrix)
+  orderItems      OrderItem[]
+
+  // Pre-computed recommendations where this is the source product
+  asSource        Recommendation[] @relation("SourceProduct")
+
+  @@unique([shopId, shopifyId])
+  @@index([shopId])
+}
+
+// ─── Orders (synced from Shopify for co-occurrence analysis) ─────────────────
+
+model Order {
+  id              String   @id @default(cuid())
+  shopId          String
+  shopifyId       String
+  createdAt       DateTime
+
+  shop            Shop      @relation(fields: [shopId], references: [id])
+  items           OrderItem[]
+
+  @@unique([shopId, shopifyId])
+  @@index([shopId])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@unique([orderId, productId])
+  @@index([productId])
+}
+
+// ─── Pre-computed Recommendations ────────────────────────────────────────────
+
+model Recommendation {
+  id              String   @id @default(cuid())
+  shopId          String
+  sourceProductId String
+  rankedProducts  String[] // Array of shopifyIds, ordered by score
+  score           Float[]  // Parallel array of similarity scores
+  computedAt      DateTime @default(now())
+
+  shop            Shop     @relation(fields: [shopId], references: [id])
+  sourceProduct   Product  @relation("SourceProduct", fields: [sourceProductId], references: [id])
+
+  @@unique([shopId, sourceProductId])
+  @@index([shopId, sourceProductId])
+}
+
+// ─── Widget Configuration ─────────────────────────────────────────────────────
+
+model WidgetConfig {
+  id              String  @id @default(cuid())
+  shopId          String  @unique
+  title           String  @default("You might also like")
+  maxProducts     Int     @default(4)
+  showPrices      Boolean @default(true)
+  showAddToCart   Boolean @default(true)
+  primaryColor    String  @default("#000000")
+  enabled         Boolean @default(true)
+
+  shop            Shop    @relation(fields: [shopId], references: [id])
+}
+
+// ─── Analytics Events ─────────────────────────────────────────────────────────
+
+model AnalyticsEvent {
+  id              String    @id @default(cuid())
+  shopId          String
+  eventType       EventType
+  sourceProductId String?
+  targetProductId String?
+  sessionId       String?
+  createdAt       DateTime  @default(now())
+
+  shop            Shop      @relation(fields: [shopId], references: [id])
+
+  @@index([shopId, createdAt])
+  @@index([shopId, eventType])
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Plan {
+  FREE      // up to 100 rec impressions/month
+  STARTER   // $19/mo — up to 5,000 impressions
+  GROWTH    // $49/mo — unlimited
+}
+
+enum EventType {
+  IMPRESSION   // widget was shown
+  CLICK        // user clicked a recommended product
+  ADD_TO_CART  // user added recommended product to cart
+  PURCHASE     // user purchased a recommended product
+}

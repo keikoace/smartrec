@@ -1,0 +1,32 @@
+# SmartRec — Theme App Extension
+# This file registers the extension with Shopify CLI.
+# Docs: https://shopify.dev/docs/apps/online-store/theme-app-extensions
+
+api_version = "2025-04"
+
+[[extensions]]
+type = "theme"
+name = "SmartRec Widget"
+handle = "smartrec-widget"
+
+  [extensions.settings]
+
+    [[extensions.settings.fields]]
+    key = "heading"
+    type = "text"
+    label = "Section heading"
+
+    [[extensions.settings.fields]]
+    key = "products_count"
+    type = "number_integer"
+    label = "Number of recommendations to show"
+
+    [[extensions.settings.fields]]
+    key = "show_prices"
+    type = "boolean"
+    label = "Show prices"
+
+    [[extensions.settings.fields]]
+    key = "show_add_to_cart"
+    type = "boolean"
+    label = "Show Add to Cart button"
