@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@shopify/app-bridge-react": "^4.1.4",
+    "@shopify/app-bridge-react": "^3.7.10",
     "@shopify/polaris": "^12.11.1",
     "@shopify/polaris-icons": "^9.2.0",
     "react": "^18.3.1",
