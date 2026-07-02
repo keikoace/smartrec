@@ -1,10 +1,31 @@
 import { Router, Request, Response } from 'express';
-import { shopify } from '../services/shopify';
+import crypto from 'crypto';
 import { prisma } from '../utils/db';
 import { logger } from '../utils/logger';
 import { syncProducts } from '../services/syncService';
 
 export const webhookRouter = Router();
+
+// ─── HMAC verification ────────────────────────────────────────────────────────
+// Shopify signs every webhook with X-Shopify-Hmac-SHA256 (base64 HMAC-SHA256
+// of the raw request body using the app's client secret as the key).
+function verifyShopifyHmac(rawBody: string, hmacHeader: string): boolean {
+  if (!hmacHeader) return false;
+  const secret = process.env.SHOPIFY_API_SECRET!;
+  const computed = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody, 'utf8')
+    .digest('base64');
+  try {
+    // timingSafeEqual prevents timing attacks
+    return crypto.timingSafeEqual(
+      Buffer.from(computed),
+      Buffer.from(hmacHeader)
+    );
+  } catch {
+    return false;
+  }
+}
 
 // Helper: verify HMAC signature and parse body
 async function verifyAndParse(req: Request, res: Response): Promise<{ shop: string; body: any } | null> {
@@ -12,13 +33,7 @@ async function verifyAndParse(req: Request, res: Response): Promise<{ shop: stri
   const shop = req.headers['x-shopify-shop-domain'] as string;
   const rawBody: string = (req.body as Buffer).toString();
 
-  const valid = await shopify.webhooks.validate({
-    rawBody,
-    rawRequest: req,
-    rawResponse: res,
-  });
-
-  if (!valid) {
+  if (!verifyShopifyHmac(rawBody, hmac)) {
     res.status(401).send('Unauthorized');
     return null;
   }
@@ -40,7 +55,6 @@ webhookRouter.post('/orders/create', async (req, res) => {
     const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: shop } });
     if (!shopRecord) return;
 
-    // Upsert the order and its line items
     const orderRecord = await prisma.order.upsert({
       where: { shopId_shopifyId: { shopId: shopRecord.id, shopifyId: String(order.id) } },
       create: {
@@ -155,8 +169,6 @@ webhookRouter.post('/app/uninstalled', async (req, res) => {
 });
 
 // ─── Compliance webhook dispatcher ───────────────────────────────────────────
-// Shopify routes all three GDPR topics to /webhooks/compliance.
-// The x-shopify-topic header tells us which one fired.
 webhookRouter.post('/compliance', async (req, res) => {
   const result = await verifyAndParse(req, res);
   if (!result) return;
@@ -170,7 +182,6 @@ webhookRouter.post('/compliance', async (req, res) => {
   if (topic === 'customers/data_request') {
     // We store no customer PII — nothing to return.
   } else if (topic === 'customers/redact') {
-    // Analytics events keyed by sessionId only, not customer identity — nothing to redact.
     logger.info('GDPR customers/redact: no PII stored', { shop });
   } else if (topic === 'shop/redact') {
     try {
@@ -191,26 +202,18 @@ webhookRouter.post('/compliance', async (req, res) => {
   }
 });
 
-// ─── GDPR Webhooks (required for Shopify App Store approval) ─────────────────
-// Individual routes kept for backward compatibility.
-// SmartRec stores no customer PII; only shop-level aggregate analytics.
-
 /**
  * CUSTOMERS_DATA_REQUEST
- * Merchant's customer asked for their data. We don't store PII so we respond 200.
  */
 webhookRouter.post('/customers/data_request', async (req, res) => {
   const result = await verifyAndParse(req, res);
   if (!result) return;
   res.status(200).send('OK');
   logger.info('GDPR: customers/data_request received', { shop: result.shop });
-  // SmartRec does not store customer PII (names, emails, addresses).
-  // Analytics events are stored by sessionId only — not linked to customer identity.
 });
 
 /**
  * CUSTOMERS_REDACT
- * Merchant's customer requested erasure. Delete analytics events for this session.
  */
 webhookRouter.post('/customers/redact', async (req, res) => {
   const result = await verifyAndParse(req, res);
@@ -223,13 +226,8 @@ webhookRouter.post('/customers/redact', async (req, res) => {
   try {
     const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: shop } });
     if (!shopRecord) return;
-
-    // orders_to_redact contains order IDs — we don't store customer PII but
-    // we can delete analytics events associated with those orders' sessions.
     const orderIds: string[] = (body.orders_to_redact ?? []).map((o: any) => String(o.id));
     if (orderIds.length > 0) {
-      // We only have sessionId, not orderId, in AnalyticsEvent — nothing to redact.
-      // Log for audit trail.
       logger.info('GDPR customers/redact: no PII to delete', { shop, orderIds });
     }
   } catch (err) {
@@ -239,7 +237,6 @@ webhookRouter.post('/customers/redact', async (req, res) => {
 
 /**
  * SHOP_REDACT
- * Shop uninstalled + 48h grace period passed. Delete all shop data.
  */
 webhookRouter.post('/shop/redact', async (req, res) => {
   const result = await verifyAndParse(req, res);
@@ -253,7 +250,6 @@ webhookRouter.post('/shop/redact', async (req, res) => {
     const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: shop } });
     if (!shopRecord) return;
 
-    // Cascade-delete all shop data in dependency order
     await prisma.analyticsEvent.deleteMany({ where: { shopId: shopRecord.id } });
     await prisma.recommendation.deleteMany({ where: { shopId: shopRecord.id } });
     await prisma.orderItem.deleteMany({ where: { order: { shopId: shopRecord.id } } });
