@@ -20,3 +20,4 @@ api_version = "2025-04"
 embedded = false
 [app_urls]
 privacy = "https://keikoace.github.io/smartrec-site"
+terms_of_service = "https://keikoace.github.io/smartrec-site/tos"
